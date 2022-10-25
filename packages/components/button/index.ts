@@ -1,5 +1,5 @@
 import { withInstall, withNoopInstall } from '@element-plus/utils'
-import Button from './src/button.vue'
+import Button from './src/button.tsx'
 import ButtonGroup from './src/button-group.vue'
 
 export const ElButton = withInstall(Button, {
