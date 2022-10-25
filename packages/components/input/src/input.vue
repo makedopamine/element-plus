@@ -157,6 +157,7 @@ import {
   getCurrentInstance,
   nextTick,
   onMounted,
+  onUnmounted,
   onUpdated,
   ref,
   shallowRef,
@@ -504,20 +505,27 @@ watch(
   }
 )
 
-onMounted(() => {
-  if (!props.formatter && props.parser) {
-    debugWarn(
-      'ElInput',
-      'If you set the parser, you also need to set the formatter.'
-    )
-  }
-  setNativeInputValue()
-  updateIconOffset()
-  nextTick(resizeTextarea)
+onMounted(async () => {
+  // if (!props.formatter && props.parser) {
+  //   debugWarn(
+  //     'ElInput',
+  //     'If you set the parser, you also need to set the formatter.'
+  //   )
+  // }
+  // setNativeInputValue()
+  // updateIconOffset()
+  inputId.value = 'ddddd'
+  await nextTick()
+  // resizeTextarea()
 })
 
-onUpdated(() => {
-  nextTick(updateIconOffset)
+onUpdated(async () => {
+  await nextTick()
+  // resizeTextarea()
+})
+
+onUnmounted(() => {
+  console.log('input unmounted')
 })
 
 defineExpose({

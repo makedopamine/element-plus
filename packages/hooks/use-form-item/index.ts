@@ -1,6 +1,7 @@
 import {
   computed,
   inject,
+  nextTick,
   onMounted,
   onUnmounted,
   ref,
@@ -46,7 +47,7 @@ export const useFormItemInputId = (
   }
 
   const inputId = ref<string>()
-  let idUnwatch: WatchStopHandle | undefined = undefined
+  const idUnwatch: WatchStopHandle | undefined = undefined
 
   const isLabeledByFormItem = computed<boolean>(() => {
     return !!(
@@ -58,23 +59,25 @@ export const useFormItemInputId = (
   })
 
   // Generate id for ElFormItem label if not provided as prop
-  onMounted(() => {
-    idUnwatch = watch(
-      [toRef(props, 'id'), disableIdGeneration] as any,
-      ([id, disableIdGeneration]: [string, boolean]) => {
-        const newId = id ?? (!disableIdGeneration ? useId().value : undefined)
-        if (newId !== inputId.value) {
-          if (formItemContext?.removeInputId) {
-            inputId.value && formItemContext.removeInputId(inputId.value)
-            if (!disableIdManagement?.value && !disableIdGeneration && newId) {
-              formItemContext.addInputId(newId)
-            }
-          }
-          inputId.value = newId
-        }
-      },
-      { immediate: true }
-    )
+  onMounted(async () => {
+    // idUnwatch = watch(
+    //   [toRef(props, 'id'), disableIdGeneration] as any,
+    //   ([id, disableIdGeneration]: [string, boolean]) => {
+    //     const newId = id ?? (!disableIdGeneration ? useId().value : undefined)
+    //     if (newId !== inputId.value) {
+    //       if (formItemContext?.removeInputId) {
+    //         inputId.value && formItemContext.removeInputId(inputId.value)
+    //         if (!disableIdManagement?.value && !disableIdGeneration && newId) {
+    //           formItemContext.addInputId(newId)
+    //         }
+    //       }
+    //       inputId.value = newId
+    //       console.log('assign input id')
+    //     }
+    //   },
+    //   { immediate: true }
+    // )
+    // console.log('use form item end')
   })
 
   onUnmounted(() => {

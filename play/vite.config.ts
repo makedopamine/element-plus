@@ -62,7 +62,7 @@ export default defineConfig(async ({ mode }) => {
         setupComponent: false,
         setupSFC: false,
         plugins: {
-          vue: vue(),
+          vue: vue({ template: { compilerOptions: { hoistStatic: false } } }),
           vueJsx: vueJsx(),
         },
       }),
@@ -81,6 +81,9 @@ export default defineConfig(async ({ mode }) => {
     },
     esbuild: {
       target: 'chrome64',
+    },
+    build: {
+      minify: false,
     },
   }
 })
