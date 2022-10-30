@@ -22,9 +22,12 @@ import {
   getComponentSize,
   isFunction,
   isKorean,
+  isNumber,
+  isString,
   scrollIntoView,
 } from '@element-plus/utils'
 import {
+  useDeprecated,
   useFormItem,
   useLocale,
   useNamespace,
@@ -70,6 +73,17 @@ type States = ReturnType<typeof useSelectStates>
 export const useSelect = (props, states: States, ctx) => {
   const { t } = useLocale()
   const ns = useNamespace('select')
+
+  useDeprecated(
+    {
+      from: 'suffixTransition',
+      replacement: 'override style scheme',
+      version: '2.3.0',
+      scope: 'props',
+      ref: 'https://element-plus.org/en-US/component/select.html#select-attributes',
+    },
+    computed(() => props.suffixTransition === false)
+  )
 
   // template refs
   const reference = ref<ComponentPublicInstance<{
@@ -234,10 +248,10 @@ export const useSelect = (props, states: States, ctx) => {
       if (!val) {
         if (props.filterable) {
           if (isFunction(props.filterMethod)) {
-            props.filterMethod()
+            props.filterMethod('')
           }
           if (isFunction(props.remoteMethod)) {
-            props.remoteMethod()
+            props.remoteMethod('')
           }
         }
         input.value && input.value.blur()
@@ -335,7 +349,7 @@ export const useSelect = (props, states: States, ctx) => {
   watch(
     () => states.hoverIndex,
     (val) => {
-      if (typeof val === 'number' && val > -1) {
+      if (isNumber(val) && val > -1) {
         hoverOption.value = optionsArray.value[val] || {}
       } else {
         hoverOption.value = {}
@@ -381,8 +395,7 @@ export const useSelect = (props, states: States, ctx) => {
     if (states.previousQuery === val || states.isOnComposition) return
     if (
       states.previousQuery === null &&
-      (typeof props.filterMethod === 'function' ||
-        typeof props.remoteMethod === 'function')
+      (isFunction(props.filterMethod) || isFunction(props.remoteMethod))
     ) {
       states.previousQuery = val
       return
@@ -400,10 +413,10 @@ export const useSelect = (props, states: States, ctx) => {
         resetInputHeight()
       })
     }
-    if (props.remote && typeof props.remoteMethod === 'function') {
+    if (props.remote && isFunction(props.remoteMethod)) {
       states.hoverIndex = -1
       props.remoteMethod(val)
-    } else if (typeof props.filterMethod === 'function') {
+    } else if (isFunction(props.filterMethod)) {
       props.filterMethod(val)
       triggerRef(groupQueryChange)
     } else {
@@ -600,7 +613,7 @@ export const useSelect = (props, states: States, ctx) => {
   const deleteSelected = (event) => {
     event.stopPropagation()
     const value: string | any[] = props.multiple ? [] : ''
-    if (typeof value !== 'string') {
+    if (!isString(value)) {
       for (const item of states.selected) {
         if (item.isDisabled) value.push(item.value)
       }
@@ -797,7 +810,9 @@ export const useSelect = (props, states: States, ctx) => {
       if (states.menuVisibleOnFocus) {
         states.menuVisibleOnFocus = false
       } else {
-        states.visible = !states.visible
+        if (!tooltipRef.value || !tooltipRef.value.isFocusInsideContent()) {
+          states.visible = !states.visible
+        }
       }
       if (states.visible) {
         ;(input.value || reference.value)?.focus()
