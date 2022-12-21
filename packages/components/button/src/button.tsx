@@ -45,6 +45,7 @@ export default defineComponent({
     const _disabled = useDisabled()
     const _ref = ref<HTMLButtonElement>()
     let defaultSlot: VNode[] | undefined
+
     const _type = computed(() => props.type || buttonGroupContext?.type || '')
     const autoInsertSpace = computed(
       () =>
@@ -53,7 +54,6 @@ export default defineComponent({
 
     // add space between two characters in Chinese
     const shouldAddSpace = computed(() => {
-      console.log('1')
       // const defaultSlot = slots.default?.()
       if (autoInsertSpace.value && defaultSlot?.length === 1) {
         const slot = defaultSlot[0]
@@ -86,9 +86,9 @@ export default defineComponent({
       /** @description whether adding space */
       shouldAddSpace,
     })
+
     return () => {
-      console.log('2')
-      defaultSlot = slots.default?.()
+      if (slots.default) defaultSlot = slots.default()
       const Icon = () => {
         if (props.loading) {
           return slots.loading ? (
@@ -102,11 +102,12 @@ export default defineComponent({
           return (
             <ElIcon>
               {props.icon
-                ? resolveDynamicComponent(props.icon).render?.()
+                ? resolveDynamicComponent(props.icon)?.render?.()
                 : slots.icon?.()}
             </ElIcon>
           )
         }
+        return null
       }
       return (
         <button

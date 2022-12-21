@@ -2,6 +2,7 @@
   <el-popper-trigger
     :id="id"
     :virtual-ref="virtualRef"
+    ref="triggerRef"
     :open="open"
     :virtual-triggering="virtualTriggering"
     :class="ns.e('trigger')"
@@ -17,7 +18,8 @@
   </el-popper-trigger>
 </template>
 <script lang="ts" setup>
-import { inject, ref, toRef, unref } from 'vue'
+import { inject, onMounted, ref, toRef, unref } from 'vue'
+import { useIntersectionObserver } from '@vueuse/core'
 import { ElPopperTrigger } from '@element-plus/components/popper'
 import { composeEventHandlers } from '@element-plus/utils'
 import { useNamespace } from '@element-plus/hooks'
@@ -39,7 +41,6 @@ const { controlled, id, open, onOpen, onClose, onToggle } = inject(
 
 // TODO any is temporary, replace with `OnlyChildExpose | null` later
 const triggerRef = ref<any>(null)
-
 const stopWhenControlledOrDisabled = () => {
   if (unref(controlled) || props.disabled) {
     return true
@@ -92,6 +93,15 @@ const onKeydown = composeEventHandlers(
     }
   }
 )
+
+onMounted(() => {
+  const { stop } = useIntersectionObserver(
+    triggerRef.value.triggerRef,
+    ([{ isIntersecting }], observerElement) => {
+      if (!isIntersecting) onClose()
+    }
+  )
+})
 
 defineExpose({
   /**
