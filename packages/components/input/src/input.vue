@@ -267,9 +267,11 @@ const textareaStyle = computed<StyleValue>(() => [
   textareaCalcStyle.value,
   { resize: props.resize },
 ])
-const nativeInputValue = computed(() =>
-  isNil(props.modelValue) ? '' : String(props.modelValue)
-)
+const nativeInputValue = computed(() => {
+  let value = isNil(props.modelValue) ? '' : String(props.modelValue)
+  if (props.formatter) value = props.formatter(value)
+  return value
+})
 const showClear = computed(
   () =>
     props.clearable &&
