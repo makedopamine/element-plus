@@ -1,8 +1,13 @@
 import {
   computed,
+  createCommentVNode,
+  createElementBlock,
+  createVNode,
   defineComponent,
   getCurrentInstance,
   nextTick,
+  normalizeClass,
+  openBlock,
   provide,
   ref,
   renderSlot,
@@ -186,6 +191,7 @@ export default defineComponent({
     })
 
     return () => {
+      openBlock()
       const newButton =
         props.editable || props.addable ? (
           <span
@@ -200,43 +206,48 @@ export default defineComponent({
               <Plus />
             </ElIcon>
           </span>
-        ) : null
-
-      const header = (
-        <div class={[ns.e('header'), ns.is(props.tabPosition)]}>
-          {newButton}
-          <TabNav
-            ref={nav$}
-            currentName={currentName.value}
-            editable={props.editable}
-            type={props.type}
-            panes={panes.value}
-            stretch={props.stretch}
-            onTabClick={handleTabClick}
-            onTabRemove={handleTabRemove}
-          />
-        </div>
-      )
+        ) : (
+          createCommentVNode('')
+        )
 
       const panels = (
         <div class={ns.e('content')}>{renderSlot(slots, 'default')}</div>
       )
+      const tabNav = createVNode(
+        TabNav,
+        {
+          ref: nav$,
+          currentName: currentName.value,
+          editable: props.editable,
+          type: props.type,
+          panes: panes.value,
+          stretch: props.stretch,
+          onTabClick: handleTabClick,
+          onTabRemove: handleTabRemove,
+        },
+        null,
+        1024
+      )
+      const header = (
+        <div class={[ns.e('header'), ns.is(props.tabPosition)]}>
+          {newButton}
+          {tabNav}
+        </div>
+      )
 
-      return (
-        <div
-          class={[
+      return createElementBlock(
+        'div',
+        {
+          class: normalizeClass([
             ns.b(),
             ns.m(props.tabPosition),
             {
               [ns.m('card')]: props.type === 'card',
               [ns.m('border-card')]: props.type === 'border-card',
             },
-          ]}
-        >
-          {...props.tabPosition !== 'bottom'
-            ? [header, panels]
-            : [panels, header]}
-        </div>
+          ]),
+        },
+        props.tabPosition !== 'bottom' ? [header, panels] : [panels, header]
       )
     }
   },
