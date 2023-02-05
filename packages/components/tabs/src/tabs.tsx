@@ -11,6 +11,7 @@ import {
   provide,
   ref,
   renderSlot,
+  setBlockTracking,
   watch,
 } from 'vue'
 import {
@@ -191,7 +192,6 @@ export default defineComponent({
     })
 
     return () => {
-      openBlock()
       const newButton =
         props.editable || props.addable ? (
           <span
@@ -210,9 +210,6 @@ export default defineComponent({
           createCommentVNode('')
         )
 
-      const panels = (
-        <div class={ns.e('content')}>{renderSlot(slots, 'default')}</div>
-      )
       const tabNav = createVNode(
         TabNav,
         {
@@ -225,16 +222,20 @@ export default defineComponent({
           onTabClick: handleTabClick,
           onTabRemove: handleTabRemove,
         },
-        null,
-        1024
+        {
+          $stable: false,
+        }
       )
+      const defaultSlots = renderSlot(slots, 'default')
+      openBlock()
+      const panels = <div class={ns.e('content')}>{defaultSlots}</div>
       const header = (
         <div class={[ns.e('header'), ns.is(props.tabPosition)]}>
           {newButton}
           {tabNav}
         </div>
       )
-
+      console.log(getCurrentInstance())
       return createElementBlock(
         'div',
         {
