@@ -1,4 +1,5 @@
 <template>
+  {{ print() }}
   <div
     v-if="shouldBeRender"
     v-show="active"
@@ -29,7 +30,9 @@ import { tabsRootContextKey } from '@element-plus/tokens'
 import { throwError } from '@element-plus/utils'
 import { useNamespace } from '@element-plus/hooks'
 import { tabPaneProps } from './tab-pane'
-
+const print = () => {
+  console.log('pane render')
+}
 const COMPONENT_NAME = 'ElTabPane'
 defineOptions({
   name: COMPONENT_NAME,

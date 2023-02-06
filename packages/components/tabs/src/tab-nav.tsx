@@ -274,6 +274,7 @@ const TabNav = defineComponent({
     )
 
     return () => {
+      console.log('nav render')
       const scrollBtn = scrollable.value
         ? [
             <span

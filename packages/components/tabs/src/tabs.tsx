@@ -228,21 +228,23 @@ export default defineComponent({
       )
       const defaultSlots = renderSlot(slots, 'default')
       openBlock()
-      const panels = createVNode(
+      openBlock()
+      const panels = createElementBlock(
         'div',
         {
           class: normalizeClass([ns.e('content')]),
         },
         [defaultSlots],
-        64
+        -2
       )
-      const header = createVNode(
+      openBlock()
+      const header = createElementBlock(
         'div',
         {
           class: normalizeClass([ns.e('header'), ns.is(props.tabPosition)]),
         },
         [newButton, tabNav],
-        64
+        -2
       )
       //const panels = <div class={ns.e('content')}>{defaultSlots}</div>
       // const header = (
@@ -251,7 +253,8 @@ export default defineComponent({
       //     {tabNav}
       //   </div>
       // )
-      console.log(getCurrentInstance())
+      //console.log(getCurrentInstance())
+      // console.log('tabs render', getCurrentInstance(), panes)
       return createElementBlock(
         'div',
         {
