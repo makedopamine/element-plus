@@ -27,7 +27,7 @@ import { ArrowLeft, ArrowRight, Close } from '@element-plus/icons-vue'
 import { tabsRootContextKey } from '@element-plus/tokens'
 import { useNamespace } from '@element-plus/hooks'
 import TabBar from './tab-bar.vue'
-import type { CSSProperties, ExtractPropTypes } from 'vue'
+import type { CSSProperties, ExtractPropTypes, VNodeArrayChildren } from 'vue'
 import type { TabsPaneContext } from '@element-plus/tokens'
 import type { TabPaneName } from './tabs'
 
@@ -68,7 +68,7 @@ const TabNav = defineComponent({
   name: COMPONENT_NAME,
   props: tabNavProps,
   emits: tabNavEmits,
-  setup(props, { expose, emit }) {
+  setup(props, { expose, slots, emit }) {
     const vm = getCurrentInstance()!
 
     const rootTabs = inject(tabsRootContextKey)
@@ -274,6 +274,7 @@ const TabNav = defineComponent({
     )
 
     return () => {
+      const labels = slots.default?.()[0].children as VNodeArrayChildren
       const scrollBtn = scrollable.value
         ? [
             <span
@@ -320,7 +321,7 @@ const TabNav = defineComponent({
           </ElIcon>
         ) : null
 
-        const tabLabelContent = pane.slots.label?.() || pane.props.label
+        const tabLabelContent = labels[index]
         const tabindex = !disabled && pane.active ? 0 : -1
 
         return (

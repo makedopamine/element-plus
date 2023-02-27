@@ -2,6 +2,7 @@ import {
   computed,
   defineComponent,
   getCurrentInstance,
+  isVNode,
   nextTick,
   provide,
   ref,
@@ -11,6 +12,7 @@ import {
 import {
   buildProps,
   definePropType,
+  flattedChildren,
   isNumber,
   isString,
   isUndefined,
@@ -28,7 +30,7 @@ import TabNav from './tab-nav'
 
 import type { TabNavInstance } from './tab-nav'
 import type { TabsPaneContext } from '@element-plus/tokens'
-import type { ExtractPropTypes } from 'vue'
+import type { ExtractPropTypes, VNode } from 'vue'
 import type { Awaitable } from '@element-plus/utils'
 
 export type TabPaneName = string | number
@@ -144,6 +146,12 @@ export default defineComponent({
       emit('tabAdd')
     }
 
+    const getHeaderLabels = (panesNode: VNode[]) => {
+      return panesNode.map(
+        (pane) => (pane.children as any)?.label?.() || pane.props?.label
+      )
+    }
+
     useDeprecated(
       {
         from: '"activeName"',
@@ -202,6 +210,11 @@ export default defineComponent({
           </span>
         ) : null
 
+      const defaultSlotNode = renderSlot(slots, 'default')
+      const headerLabels = getHeaderLabels(
+        flattedChildren(defaultSlotNode).filter((n): n is VNode => isVNode(n))
+      )
+
       const header = (
         <div class={[ns.e('header'), ns.is(props.tabPosition)]}>
           {newButton}
@@ -214,13 +227,13 @@ export default defineComponent({
             stretch={props.stretch}
             onTabClick={handleTabClick}
             onTabRemove={handleTabRemove}
-          />
+          >
+            {headerLabels}
+          </TabNav>
         </div>
       )
 
-      const panels = (
-        <div class={ns.e('content')}>{renderSlot(slots, 'default')}</div>
-      )
+      const panels = <div class={ns.e('content')}>{defaultSlotNode}</div>
 
       return (
         <div
