@@ -158,11 +158,7 @@ import {
   computed,
   nextTick,
   onMounted,
-<<<<<<< HEAD
-  onUnmounted,
   onUpdated,
-=======
->>>>>>> 5ef175fe6763c1d0a760ee58e97149226fe470c0
   ref,
   shallowRef,
   toRef,
@@ -479,6 +475,7 @@ watch(
 )
 
 onMounted(async () => {
+  console.log('bbb')
   // if (!props.formatter && props.parser) {
   //   debugWarn(
   //     'ElInput',
@@ -496,7 +493,6 @@ onUpdated(async () => {
   await nextTick()
   // resizeTextarea()
 })
-
 
 defineExpose({
   /** @description HTML input element */
