@@ -165,6 +165,7 @@
       #{getCssVar('menu-icon-width')} + #{getCssVar('menu-base-level-padding')} *
         2
     );
+    box-sizing: content-box;
 
     > .#{$namespace}-menu-item,
     > .#{$namespace}-sub-menu > .#{$namespace}-sub-menu__title,
