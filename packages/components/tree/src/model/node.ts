@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { reactive } from 'vue'
 import { hasOwn } from '@element-plus/utils'
 import { NODE_KEY, markNodeData } from './util'

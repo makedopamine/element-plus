@@ -1,11 +1,10 @@
-// @ts-nocheck
 import { provide, ref } from 'vue'
 import { addClass, removeClass } from '@element-plus/utils'
 import { useNamespace } from '@element-plus/hooks'
-import type { InjectionKey } from 'vue'
+import type { InjectionKey, Ref } from 'vue'
 import type Node from './node'
 import type { NodeDropType } from '../tree.type'
-
+import type TreeStore from '../model/tree-store'
 interface TreeNode {
   node: Node
   $el?: HTMLElement
@@ -16,6 +15,14 @@ interface DragOptions {
   treeNode: TreeNode
 }
 
+interface DragState {
+  showDropIndicator: boolean
+  draggingNode: TreeNode | null
+  dropNode: TreeNode | null
+  allowDrop: boolean
+  dropType: NodeDropType | null
+}
+
 export interface DragEvents {
   treeNodeDragStart: (options: DragOptions) => void
   treeNodeDragOver: (options: DragOptions) => void
@@ -24,9 +31,17 @@ export interface DragEvents {
 
 export const dragEventsKey: InjectionKey<DragEvents> = Symbol('dragEvents')
 
-export function useDragNodeHandler({ props, ctx, el$, dropIndicator$, store }) {
+export function useDragNodeHandler({
+  props,
+  ctx,
+  el$,
+  dropIndicator$,
+  store,
+}: {
+  store: Ref<TreeStore>
+}) {
   const ns = useNamespace('tree')
-  const dragState = ref({
+  const dragState = ref<DragState>({
     showDropIndicator: false,
     draggingNode: null,
     dropNode: null,
@@ -42,13 +57,13 @@ export function useDragNodeHandler({ props, ctx, el$, dropIndicator$, store }) {
       event.preventDefault()
       return false
     }
-    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer!.effectAllowed = 'move'
 
     // wrap in try catch to address IE's error when first param is 'text/plain'
     try {
       // setData is required for draggable to work in FireFox
       // the content has to be '' so dragging a node out of the tree won't open a new tab in FireFox
-      event.dataTransfer.setData('text/plain', '')
+      event.dataTransfer!.setData('text/plain', '')
     } catch {}
     dragState.value.draggingNode = treeNode
     ctx.emit('node-drag-start', treeNode.node, event)
@@ -76,7 +91,7 @@ export function useDragNodeHandler({ props, ctx, el$, dropIndicator$, store }) {
       )
       dropNext = props.allowDrop(draggingNode.node, dropNode.node, 'next')
     }
-    event.dataTransfer.dropEffect =
+    event.dataTransfer!.dropEffect =
       dropInner || dropPrev || dropNext ? 'move' : 'none'
     if (
       (dropPrev || dropInner || dropNext) &&
@@ -164,7 +179,7 @@ export function useDragNodeHandler({ props, ctx, el$, dropIndicator$, store }) {
   const treeNodeDragEnd = (event: DragEvent) => {
     const { draggingNode, dropType, dropNode } = dragState.value
     event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
+    event.dataTransfer!.dropEffect = 'move'
 
     if (draggingNode && dropNode) {
       const draggingNodeCopy = { data: draggingNode.node.data }
