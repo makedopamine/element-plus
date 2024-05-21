@@ -44,13 +44,13 @@ import { useProps } from './useProps'
 
 import type { Option, OptionType, SelectStates } from './select.types'
 import type { ISelectV2Props } from './token'
-import type { SelectEmitFn } from './defaults'
+import type { SelectV2EmitsFn } from './defaults'
 import type { TooltipInstance } from '@element-plus/components/tooltip'
 import type { SelectDropdownInstance } from './select-dropdown'
 
 const MINIMUM_INPUT_WIDTH = 11
 
-const useSelect = (props: ISelectV2Props, emit: SelectEmitFn) => {
+const useSelect = (props: ISelectV2Props, emit: SelectV2EmitsFn) => {
   // inject
   const { t } = useLocale()
   const nsSelect = useNamespace('select')

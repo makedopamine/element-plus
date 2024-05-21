@@ -4,7 +4,12 @@ import {
   useEmptyValuesProps,
   useSizeProp,
 } from '@element-plus/hooks'
-import { buildProps, definePropType, iconPropType } from '@element-plus/utils'
+import {
+  buildProps,
+  definePropType,
+  iconPropType,
+  isBoolean,
+} from '@element-plus/utils'
 import { CHANGE_EVENT, UPDATE_MODEL_EVENT } from '@element-plus/constants'
 import { useTooltipContentProps } from '@element-plus/components/tooltip'
 import { CircleClose } from '@element-plus/icons-vue'
@@ -17,7 +22,7 @@ import type { Options, Placement } from '@element-plus/components/popper'
 import type { EmitFn } from '@element-plus/utils/vue/typescript'
 import type { ExtractPropTypes } from 'vue'
 
-export const SelectProps = buildProps({
+export const selectV2Props = buildProps({
   /**
    * @description whether creating new items is allowed. To use this, `filterable` must be true
    */
@@ -120,7 +125,8 @@ export const SelectProps = buildProps({
    */
   modelValue: {
     type: definePropType<
-      any[] | string | number | boolean | Record<string, any> | any
+      // eslint-disable-next-line prettier/prettier
+      any[] | string | number | boolean | (Record<string, any>) | any
     >([Array, String, Number, Boolean, Object]),
   },
   /**
@@ -251,7 +257,7 @@ export const SelectProps = buildProps({
   ...useAriaProps(['ariaLabel']),
 } as const)
 
-export const OptionProps = buildProps({
+export const optionV2Props = buildProps({
   data: Array,
   disabled: Boolean,
   hovering: Boolean,
@@ -268,29 +274,26 @@ export const OptionProps = buildProps({
   created: Boolean,
 } as const)
 
-export const selectEmits = {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  [UPDATE_MODEL_EVENT]: (val: ISelectV2Props['modelValue']) => true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  [CHANGE_EVENT]: (val: ISelectV2Props['modelValue']) => true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  removeTag: (val: unknown) => true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  visibleChange: (visible: boolean) => true,
+export const selectV2Emits = {
+  [UPDATE_MODEL_EVENT]: (val: SelectV2Props['modelValue']) => !!val,
+  [CHANGE_EVENT]: (val: SelectV2Props['modelValue']) => !!val,
+  removeTag: (val: unknown) => !!val,
+  visibleChange: (val: boolean) => isBoolean(val),
+  focus: (evt: FocusEvent) => evt instanceof FocusEvent,
+  blur: (evt: FocusEvent) => evt instanceof FocusEvent,
   clear: () => true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  focus: (event: FocusEvent) => true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  blur: (event: FocusEvent) => true,
-}
-export const optionEmits = {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  hover: (index: number) => true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  select: (val: Option, index: number) => true,
 }
 
-export type ISelectV2Props = ExtractPropTypes<typeof SelectProps>
-export type IOptionV2Props = ExtractPropTypes<typeof OptionProps>
-export type SelectEmitFn = EmitFn<typeof selectEmits>
-export type OptionEmitFn = EmitFn<typeof optionEmits>
+export const optionV2Emits = {
+  hover: (index: number) => !!index,
+  select: (val: Option, index: number) => val && index,
+}
+
+export type SelectV2Props = ExtractPropTypes<typeof selectV2Props>
+export type OptionV2Props = ExtractPropTypes<typeof optionV2Props>
+
+export type SelectV2Emits = typeof selectV2Emits
+export type SelectV2EmitsFn = EmitFn<SelectV2Emits>
+
+export type OptionV2Emits = typeof optionV2Emits
+export type OptionV2EmitsFn = EmitFn<OptionV2Emits>
