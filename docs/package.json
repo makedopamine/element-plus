@@ -1,6 +1,7 @@
 {
   "name": "@element-plus/docs",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "pnpm gen-locale && vitepress dev .",
     "build": "NODE_ENV=production && vitepress build . && tsx .vitepress/build/rebuild-pwa.ts",
@@ -47,6 +48,6 @@
     "vite-plugin-inspect": "^0.5.0",
     "vite-plugin-mkcert": "^1.7.2",
     "vite-plugin-pwa": "^0.12.0",
-    "vitepress": "^0.22.4"
+    "vitepress": "^1.2.2"
   }
 }
