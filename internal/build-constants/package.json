@@ -22,6 +22,6 @@
     "stub": "unbuild --stub"
   },
   "devDependencies": {
-    "unbuild": "^0.7.4"
+    "unbuild": "^2.0.0"
   }
 }
