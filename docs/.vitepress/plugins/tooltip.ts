@@ -1,3 +1,4 @@
+import type ts from 'typescript'
 import type MarkdownIt from 'markdown-it'
 
 export default (md: MarkdownIt): void => {
@@ -26,4 +27,17 @@ export default (md: MarkdownIt): void => {
 
     return true
   })
+}
+
+interface SymbolDisplayPart {
+  text: string
+  kind: string
+}
+declare module 'typescript' {
+  function typeToDisplayParts(
+    typechecker: ts.TypeChecker,
+    type: ts.Type,
+    enclosingDeclaration?: ts.Node,
+    flags?: ts.TypeFormatFlags
+  ): Array<SymbolDisplayPart>
 }

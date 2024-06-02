@@ -1,12 +1,12 @@
 import ElementPlus from 'element-plus'
-
+import Theme from 'vitepress/theme'
 import VPApp, { NotFound, globals } from '../vitepress'
 import { define } from '../utils/types'
 import 'uno.css'
 import './style.css'
-import type { Theme } from 'vitepress'
 
-export default define<Theme>({
+export default {
+  Theme,
   NotFound,
   Layout: VPApp,
   enhanceApp: ({ app }) => {
@@ -16,4 +16,4 @@ export default define<Theme>({
       app.component(name, Comp)
     })
   },
-})
+}
