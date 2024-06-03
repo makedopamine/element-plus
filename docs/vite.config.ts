@@ -72,6 +72,9 @@ export default defineConfig(async ({ mode }) => {
       VueMacros({
         setupComponent: false,
         setupSFC: false,
+        hoistStatic: {
+          exclude: ['examples/**/*.vue', '.vitepress/**/*.vue'],
+        },
         plugins: {
           vueJsx: vueJsx(),
         },
