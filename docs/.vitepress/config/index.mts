@@ -8,6 +8,7 @@ import { head } from './head'
 import { nav } from './nav'
 import { mdPlugin } from './plugins'
 import { sidebars } from './sidebars'
+import transformer from './transformer-twoslash'
 
 const buildTransformers = () => {
   const transformer = () => {
@@ -74,7 +75,15 @@ export default defineConfig({
   locales,
 
   markdown: {
+    preConfig: (md) => {
+      const use = md.use.bind(md)
+      md.use = function (plugin: any) {
+        if (plugin.name === 'preWrapperPlugin') return this
+        return use(plugin, ...Array.prototype.slice.call(arguments, 1))
+      }
+    },
     config: (md) => mdPlugin(md),
+    codeTransformers: [transformer],
   },
 
   vue: {

@@ -128,7 +128,7 @@ form/accessibility
 | Name                              | Description                                                                                                                                                                              | Type                                           | Default |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------- |
 | model                             | Data of form component.                                                                                                                                                                  | ^[object]`Record<string, any>`                 | —       |
-| rules                             | Validation rules of form.                                                                                                                                                                | ^[object]`FormRules`                           | —       |
+| rules                             | Validation rules of form.                                                                                                                                                                | ^[object]`FormRules \| string`                 | —       |
 | inline                            | Whether the form is inline.                                                                                                                                                              | ^[boolean]                                     | false   |
 | label-position                    | Position of label. If set to `'left'` or `'right'`, `label-width` prop is also required.                                                                                                 | ^[enum]`'left' \| 'right' \| 'top'`            | right   |
 | label-width                       | Width of label, e.g. `'50px'`. All its direct child form items will inherit this value. `auto` is supported.                                                                             | ^[string] / ^[number]                          | ''      |
@@ -158,14 +158,14 @@ form/accessibility
 
 ### Form Exposes
 
-| Name          | Description                                                        | Type                                                                                                                              |
-| ------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| validate      | Validate the whole form. Receives a callback or returns `Promise`. | ^[Function]`(callback?: FormValidateCallback) => Promise<void>`                                                                   |
-| validateField | Validate specified fields.                                         | ^[Function]`(props?: Arrayable<FormItemProp> \| undefined, callback?: FormValidateCallback \| undefined) => FormValidationResult` |
-| resetFields   | Reset specified fields and remove validation result.               | ^[Function]`(props?: Arrayable<FormItemProp> \| undefined) => void`                                                               |
-| scrollToField | Scroll to the specified fields.                                    | ^[Function]`(prop: FormItemProp) => void`                                                                                         |
-| clearValidate | Clear validation message for specified fields.                     | ^[Function]`(props?: Arrayable<FormItemProp> \| undefined) => void`                                                               |
-| fields ^(2.7.3)        | Get all fields context.                                    | ^[array]`FormItemContext[]`                                                                  |
+| Name            | Description                                                        | Type                                                                                                                              |
+| --------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| validate        | Validate the whole form. Receives a callback or returns `Promise`. | ^[Function]`(callback?: FormValidateCallback) => Promise<void>`                                                                   |
+| validateField   | Validate specified fields.                                         | ^[Function]`(props?: Arrayable<FormItemProp> \| undefined, callback?: FormValidateCallback \| undefined) => FormValidationResult` |
+| resetFields     | Reset specified fields and remove validation result.               | ^[Function]`(props?: Arrayable<FormItemProp> \| undefined) => void`                                                               |
+| scrollToField   | Scroll to the specified fields.                                    | ^[Function]`(prop: FormItemProp) => void`                                                                                         |
+| clearValidate   | Clear validation message for specified fields.                     | ^[Function]`(props?: Arrayable<FormItemProp> \| undefined) => void`                                                               |
+| fields ^(2.7.3) | Get all fields context.                                            | ^[array]`FormItemContext[]`                                                                                                       |
 
 ## FormItem API
 
@@ -221,76 +221,16 @@ If you don't want to trigger the validator based on input events, set the `valid
 <details>
   <summary>Show declarations</summary>
 
-```ts
-type Arrayable<T> = T | T[]
-
-type FormValidationResult = Promise<boolean>
-
-// ValidateFieldsError: see [async-validator](https://github.com/yiminghe/async-validator/blob/master/src/interface.ts)
-type FormValidateCallback = (
-  isValid: boolean,
-  invalidFields?: ValidateFieldsError
-) => Promise<void> | void
-
-// RuleItem: see [async-validator](https://github.com/yiminghe/async-validator/blob/master/src/interface.ts)
-interface FormItemRule extends RuleItem {
-  trigger?: Arrayable<string>
-}
-
-type Primitive = null | undefined | string | number | boolean | symbol | bigint
-type BrowserNativeObject = Date | FileList | File | Blob | RegExp
-type IsTuple<T extends ReadonlyArray<any>> = number extends T['length']
-  ? false
-  : true
-type ArrayMethodKey = keyof any[]
-type TupleKey<T extends ReadonlyArray<any>> = Exclude<keyof T, ArrayMethodKey>
-type ArrayKey = number
-type PathImpl<K extends string | number, V> = V extends
-  | Primitive
-  | BrowserNativeObject
-  ? `${K}`
-  : `${K}` | `${K}.${Path<V>}`
-type Path<T> = T extends ReadonlyArray<infer V>
-  ? IsTuple<T> extends true
-    ? {
-        [K in TupleKey<T>]-?: PathImpl<Exclude<K, symbol>, T[K]>
-      }[TupleKey<T>]
-    : PathImpl<ArrayKey, V>
-  : {
-      [K in keyof T]-?: PathImpl<Exclude<K, symbol>, T[K]>
-    }[keyof T]
-type FieldPath<T> = T extends object ? Path<T> : never
-// MaybeRef: see [@vueuse/core](https://github.com/vueuse/vueuse/blob/main/packages/shared/utils/types.ts)
-// UnwrapRef: see [vue](https://github.com/vuejs/core/blob/main/packages/reactivity/src/ref.ts)
-type FormRules<T extends MaybeRef<Record<string, any> | string> = string> =
-  Partial<
-    Record<
-      UnwrapRef<T> extends string ? UnwrapRef<T> : FieldPath<UnwrapRef<T>>,
-      Arrayable<FormItemRule>
-    >
-  >
-
-type FormItemValidateState = typeof formItemValidateStates[number]
-type FormItemProps = ExtractPropTypes<typeof formItemProps>
-
-type FormItemContext = FormItemProps & {
-  $el: HTMLDivElement | undefined
-  size: ComponentSize
-  validateState: FormItemValidateState
-  isGroup: boolean
-  labelId: string
-  inputIds: string[]
-  hasLabel: boolean
-  fieldValue: any
-  addInputId: (id: string) => void
-  removeInputId: (id: string) => void
-  validate: (
-    trigger: string,
-    callback?: FormValidateCallback
-  ) => FormValidationResult
-  resetField(): void
-  clearValidate(): void
-}
+```ts twoslash
+import type {
+  FormItemValidateState,
+  FormItemProps,
+  ComponentSize,
+  FormRules,
+  FormItemRule
+  FormValidateCallback
+  FormItemContext
+} from 'element-plus'
 
 ```
 

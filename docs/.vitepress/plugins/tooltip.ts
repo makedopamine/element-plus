@@ -1,15 +1,19 @@
 import ts from 'typescript'
 import type MarkdownIt from 'markdown-it'
+import {} from 'vue'
 
 export default (md: MarkdownIt): void => {
   const render = md.renderer.render.bind(md.renderer)
   md.renderer.render = (tokens, options, env) => {
     const tooltipRegExp = /^\^\[([^\]]*)\](`[^`]*`)?/
     const declarationBlock = tokens.find(
-      (t) => t.type === 'fence' && t.info === 'ts'
+      (t) => t.type === 'fence' && t.info === 'ts twoslash'
     )
-    const tooltips: [string, SymbolDisplayPart[]][] = []
     if (declarationBlock) {
+      const tips = new Map<
+        string,
+        { token: typeof tokens[number]; briefType: string }
+      >()
       const variableStatements: string[] = []
       for (const token of tokens) {
         if (token.type !== 'inline') continue
@@ -20,17 +24,24 @@ export default (md: MarkdownIt): void => {
         const result = str.match(tooltipRegExp)
         if (!result) continue
 
-        const sn = variableStatements.length + 1
-        const identifier = `identifier${sn}`
-        const type = (result[2] || '').replace(/^`(.*)`$/, '$1')
-        const variableStatement = `let ${identifier}:${type}`
-        variableStatements.push(variableStatement)
-        // token.type = 'html_inline'
-        // token.content = `<twoslash>${identifier}</twoslash>`
+        const briefType = result[1].replace(/\\\|/g, '|')
+        let detailedType = (result[2] || '').replace(/^`(.*)`$/, '$1')
+        if (detailedType) {
+          const sn = variableStatements.length + 1
+          const identifier = `identifier${sn}`
+          const variableStatement = `let ${identifier}:${detailedType}`
+          tips.set(identifier, { token, briefType })
+          variableStatements.push(variableStatement)
+        } else {
+          token.type = 'html_inline'
+          token.content = `<api-typing type="${briefType}"/>`
+        }
       }
       const sourceCode =
         declarationBlock.content + variableStatements.join('\n')
-      const compilerOptions = {
+      const compilerOptions: ts.CompilerOptions = {
+        baseUrl: '.',
+        moduleResolution: ts.ModuleResolutionKind.NodeJs,
         target: ts.ScriptTarget.ES2015,
         paths: {
           'element-plus': ['../packages/element-plus'],
@@ -61,9 +72,27 @@ export default (md: MarkdownIt): void => {
         .filter((t) => t.kind === ts.SyntaxKind.VariableStatement)
         .map((v) => (v as ts.VariableStatement).declarationList.declarations[0])
       variableDeclarations.forEach((v) => {
-        const type = typeChecker.getTypeAtLocation(v)
-        const displayParts = ts.typeToDisplayParts(typeChecker, type)
-        tooltips.push([v.name.getText(), displayParts])
+        const detailedType = v.type!.getText()
+        const details = (v.type!.types ?? [v.type]).reduce((res, type) => {
+          const targetType = type.getText()
+          if (
+            type.kind === ts.SyntaxKind.TypeReference &&
+            sourceFile.locals.get(targetType)
+          ) {
+            res = res.replace(
+              targetType,
+              encodeURIComponent(
+                `<a href="javascript:document.getElementById('type-${targetType}').scrollIntoView({behavior: 'smooth', block: 'center'})">${targetType}</a>`
+              )
+            )
+          }
+          return res
+        }, detailedType)
+        console.log(details)
+        const identifier = v.name.getText()
+        const { token, briefType } = tips.get(identifier)!
+        token.type = 'html_inline'
+        token.content = `<api-typing type="${briefType}" details="${details}"/>`
       })
       if (importDeclaration) {
         declarationBlock.content = declarationBlock.content.slice(
@@ -90,52 +119,9 @@ export default (md: MarkdownIt): void => {
         }
       }
     }
-    env.tooltips = tooltips
-    // tooltips.forEach(([identifier, displayParts]) => {
-    //   const tooltipContent = displayParts.map((displayPart) => {
-    //     if (
-    //       displayPart.kind === 'aliasName' ||
-    //       displayPart.kind === 'interfaceName'
-    //     ) {
-    //       return `<a href="javascript:document.getElementById('type-${displayPart.text}').scrollIntoView({behavior: 'smooth', block: 'center'})">${displayPart.text}</a>`
-    //     }
-    //     return displayPart.text
-    //   })
-    //   html = html.replace(
-    //     `<twoslash>${identifier}</twoslash>`,
-    //     tooltipContent.join('')
-    //   )
-    // })
 
     return render(tokens, options, env)
   }
-  md.renderer.rules.tooltip = (tokens, idx) => {
-    const token = tokens[idx]
-
-    return `<api-typing type="${token.content}" details="${token.info}" />`
-  }
-
-  md.inline.ruler.before('emphasis', 'tooltip', (state, silent) => {
-    const tooltipRegExp = /^\^\[([^\]]*)\](`[^`]*`)?/
-    const str = state.src.slice(state.pos, state.posMax)
-
-    if (!tooltipRegExp.test(str)) return false
-    if (silent) return true
-
-    const result = str.match(tooltipRegExp)
-
-    if (!result) return false
-    debugger
-    const tooltips = state.env.tooltips
-
-    const token = state.push('tooltip', 'tooltip', 0)
-    token.content = result[1].replace(/\\\|/g, '|')
-    token.info = (result[2] || '').replace(/^`(.*)`$/, '$1')
-    token.level = state.level
-    state.pos += result[0].length
-
-    return true
-  })
 }
 
 interface SymbolDisplayPart {
