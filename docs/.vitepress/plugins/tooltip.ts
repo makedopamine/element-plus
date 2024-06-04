@@ -88,12 +88,12 @@ export default (md: MarkdownIt): void => {
           }
           return res
         }, detailedType)
-        console.log(details)
         const identifier = v.name.getText()
         const { token, briefType } = tips.get(identifier)!
         token.type = 'html_inline'
         token.content = `<api-typing type="${briefType}" details="${details}"/>`
       })
+      debugger
       if (importDeclaration) {
         declarationBlock.content = declarationBlock.content.slice(
           Math.max(0, importDeclaration.end)
