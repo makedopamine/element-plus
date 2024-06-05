@@ -1,138 +1,124 @@
 import ts from 'typescript'
 import type MarkdownIt from 'markdown-it'
-import {} from 'vue'
+import { Project } from 'ts-morph'
+import type { TypeNode } from 'ts-morph'
 
 export default (md: MarkdownIt): void => {
+  const project = new Project({
+    tsConfigFilePath: './tsconfig.json',
+  })
+
   const render = md.renderer.render.bind(md.renderer)
   md.renderer.render = (tokens, options, env) => {
-    const tooltipRegExp = /^\^\[([^\]]*)\](`[^`]*`)?/
-    const declarationBlock = tokens.find(
+    const twoslashBlock = tokens.find(
       (t) => t.type === 'fence' && t.info === 'ts twoslash'
     )
-    if (declarationBlock) {
-      const tips = new Map<
-        string,
-        { token: typeof tokens[number]; briefType: string }
-      >()
-      const variableStatements: string[] = []
-      for (const token of tokens) {
-        if (token.type !== 'inline') continue
+    const variableStatements: string[] = []
+    const tips = new Map<
+      string,
+      { token: typeof tokens[number]; briefType: string }
+    >()
+    const tooltipRegExp = /^\^\[([^\]]*)\](`[^`]*`)?/
 
-        const str = token.content
-        if (!tooltipRegExp.test(str)) continue
+    for (const token of tokens) {
+      if (token.type !== 'inline') continue
 
-        const result = str.match(tooltipRegExp)
-        if (!result) continue
+      const str = token.content
+      if (!tooltipRegExp.test(str)) continue
 
-        const briefType = result[1].replace(/\\\|/g, '|')
-        let detailedType = (result[2] || '').replace(/^`(.*)`$/, '$1')
-        if (detailedType) {
-          const sn = variableStatements.length + 1
-          const identifier = `identifier${sn}`
-          const variableStatement = `let ${identifier}:${detailedType}`
-          tips.set(identifier, { token, briefType })
-          variableStatements.push(variableStatement)
-        } else {
-          token.type = 'html_inline'
-          token.content = `<api-typing type="${briefType}"/>`
-        }
+      const result = str.match(tooltipRegExp)
+      if (!result) continue
+
+      const briefType = result[1].replace(/\\\|/g, '|')
+      const detailedType = (result[2] || '').replace(/^`(.*)`$/, '$1')
+      token.type = 'html_inline'
+      token.content = `<api-typing type="${briefType}" details="${detailedType}"/>`
+
+      if (twoslashBlock && detailedType) {
+        const sn = variableStatements.length + 1
+        const variableName = `variableName${sn}`
+        const variableStatement = `let ${variableName}:${detailedType}`
+        tips.set(variableName, { token, briefType })
+        variableStatements.push(variableStatement)
       }
-      const sourceCode =
-        declarationBlock.content + variableStatements.join('\n')
-      const compilerOptions: ts.CompilerOptions = {
-        baseUrl: '.',
-        moduleResolution: ts.ModuleResolutionKind.NodeJs,
-        target: ts.ScriptTarget.ES2015,
-        paths: {
-          'element-plus': ['../packages/element-plus'],
-          '~/*': ['./.vitepress/vitepress/*'],
-        },
-        types: ['../typings/components'],
-      }
-      const compilerHost: ts.CompilerHost =
-        ts.createCompilerHost(compilerOptions)
-      const readFile = compilerHost.readFile
-      compilerHost.readFile = (fileName: string) => {
-        if (fileName === 'virtualFile.ts') return sourceCode
-        return readFile(fileName)
-      }
-      const program = ts.createProgram(
-        ['virtualFile.ts'],
-        compilerOptions,
-        compilerHost
-      )
-      const typeChecker = program.getTypeChecker()
-      const sourceFile = program.getSourceFile(
-        'virtualFile.ts'
-      )! as ts.SourceFile & { locals: ts.SymbolTable }
-      const importDeclaration = sourceFile.statements.find(
-        (t) => t.kind === ts.SyntaxKind.ImportDeclaration
-      ) as ts.ImportDeclaration | undefined
-      const variableDeclarations = sourceFile.statements
-        .filter((t) => t.kind === ts.SyntaxKind.VariableStatement)
-        .map((v) => (v as ts.VariableStatement).declarationList.declarations[0])
-      variableDeclarations.forEach((v) => {
-        const detailedType = v.type!.getText()
-        const details = (v.type!.types ?? [v.type]).reduce((res, type) => {
-          const targetType = type.getText()
+    }
+
+    let html = ''
+    if (twoslashBlock) {
+      const sourceCode = twoslashBlock.content + variableStatements.join('\n')
+      const sourceFile = project.createSourceFile(`${env.path}.ts`, sourceCode)
+      const locals = sourceFile.getLocals()
+      const variableDeclarations = sourceFile.getVariableDeclarations()
+      variableDeclarations.forEach((variableDeclaration) => {
+        const typeNode = variableDeclaration.getTypeNode()!
+        const typeText = typeNode.getText()
+        const details = (
+          ((typeNode as any).getTypeNodes?.() as TypeNode[]) ?? [typeNode]
+        ).reduce((res, node) => {
+          const text = node.getText()
           if (
-            type.kind === ts.SyntaxKind.TypeReference &&
-            sourceFile.locals.get(targetType)
+            node.getKind() === ts.SyntaxKind.TypeReference &&
+            locals.some((l) => l.getName() === node.getText())
           ) {
             res = res.replace(
-              targetType,
+              text,
               encodeURIComponent(
-                `<a href="javascript:document.getElementById('type-${targetType}').scrollIntoView({behavior: 'smooth', block: 'center'})">${targetType}</a>`
+                `<a href="javascript:document.getElementById('type-${text}').scrollIntoView({behavior: 'smooth', block: 'center'})">${text}</a>`
               )
             )
           }
           return res
-        }, detailedType)
-        const identifier = v.name.getText()
-        const { token, briefType } = tips.get(identifier)!
-        token.type = 'html_inline'
+        }, typeText)
+        const variableName = variableDeclaration.getName()
+        const { token, briefType } = tips.get(variableName)!
         token.content = `<api-typing type="${briefType}" details="${details}"/>`
       })
-      debugger
-      if (importDeclaration) {
-        declarationBlock.content = declarationBlock.content.slice(
-          Math.max(0, importDeclaration.end)
-        )
-        const imports =
-          importDeclaration.importClause?.namedBindings?.elements.map((t) => {
-            return t.name.text
+      const importDeclarations = sourceFile.getImportDeclarations()
+      if (importDeclarations.length > 0) {
+        const importedText = importDeclarations
+          .map((importDeclaration) => {
+            const namedImports = importDeclaration.getNamedImports()
+            const exports = importDeclaration
+              .getModuleSpecifierSourceFile()!
+              .getExportedDeclarations()
+            return Array.from(exports)
+              .filter(([name]) =>
+                namedImports.some((n) => n.getName() === name)
+              )
+              .map(([, exportedDeclarations]) => {
+                const exportedDeclaration = exportedDeclarations[0]
+                const sf = exportedDeclaration.getSourceFile()
+                const index = sf
+                  .getStatements()
+                  .findIndex(
+                    (statement) =>
+                      statement.getStart() === exportedDeclaration.getStart() &&
+                      statement.getEnd() === statement.getEnd()
+                  )
+                try {
+                  sf.insertStatements(index + 1, '// ---cut-start---\n')
+                  sf.insertStatements(index, '// ---cut-end---\n')
+                } catch (e) {}
+                // // ${sf.getFilePath()}\n
+                return `// ---cut-start---\n${sf.getText()}\n// ---cut-end---`
+                //           exportedDeclaration
+                // .map((d) => {
+                //   d.getText().replace(/export\s*/, '')
+                // })
+                // .join('\n')
+              })
           })
-        const exports = typeChecker.getSymbolAtLocation(
-          importDeclaration.moduleSpecifier
-        )?.exports
-        if (imports && exports) {
-          for (const i of imports) {
-            const exportedSymbol = exports.get(i)
-            if (!exportedSymbol) continue
-
-            const typeAliasDeclaration = exportedSymbol.declarations![0]
-            const text = (typeAliasDeclaration?.parent as ts.SourceFile).text
-              .slice(typeAliasDeclaration.pos, typeAliasDeclaration.end)
-              .replace('export', '')
-            declarationBlock.content = `${text}\n${declarationBlock?.content}`
-          }
-        }
+          .join('\n')
+        twoslashBlock.content =
+          importedText +
+          '\n' +
+          twoslashBlock.content.slice(
+            importDeclarations[importDeclarations.length - 1].getEnd()
+          )
+        console.log(twoslashBlock.content)
       }
     }
 
-    return render(tokens, options, env)
+    return html ?? render(tokens, options, env)
   }
-}
-
-interface SymbolDisplayPart {
-  text: string
-  kind: string
-}
-declare module 'typescript' {
-  function typeToDisplayParts(
-    typechecker: ts.TypeChecker,
-    type: ts.Type,
-    enclosingDeclaration?: ts.Node,
-    flags?: ts.TypeFormatFlags
-  ): Array<SymbolDisplayPart>
 }
