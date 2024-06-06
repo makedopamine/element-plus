@@ -7,10 +7,11 @@ export const renderer = rendererRich({
   hast: {
     hoverToken: {
       tagName: 'el-tooltip',
+      effect: 'light',
     },
     hoverPopup: {
       tagName: 'div',
-      class: 'dopamine',
+      class: 'tooltip-code-wrapper',
     },
     hoverCompose: (parts: { token: any; popup: Element }) => {
       const triggerEl =

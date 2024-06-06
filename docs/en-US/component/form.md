@@ -225,13 +225,17 @@ If you don't want to trigger the validator based on input events, set the `valid
 import type {
   FormItemValidateState,
   FormItemProps,
+  FormItemProp,
   ComponentSize,
   FormRules,
-  FormItemRule
-  FormValidateCallback
-  FormItemContext
+  FormItemRule,
+  FormValidateCallback,
+  FormItemContext,
+  FormValidationResult,
 } from 'element-plus'
+import type { ComputedRef, Ref } from 'vue'
 
+export type Arrayable<T> = T | T[]
 ```
 
 </details>

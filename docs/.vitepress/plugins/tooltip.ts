@@ -1,13 +1,14 @@
 import ts from 'typescript'
 import type MarkdownIt from 'markdown-it'
 import { Project } from 'ts-morph'
-import type { TypeNode } from 'ts-morph'
+import type { SourceFile, TypeNode } from 'ts-morph'
+import path from 'path'
+
+const project = new Project({
+  tsConfigFilePath: './tsconfig.json',
+})
 
 export default (md: MarkdownIt): void => {
-  const project = new Project({
-    tsConfigFilePath: './tsconfig.json',
-  })
-
   const render = md.renderer.render.bind(md.renderer)
   md.renderer.render = (tokens, options, env) => {
     const twoslashBlock = tokens.find(
@@ -43,7 +44,6 @@ export default (md: MarkdownIt): void => {
       }
     }
 
-    let html = ''
     if (twoslashBlock) {
       const sourceCode = twoslashBlock.content + variableStatements.join('\n')
       const sourceFile = project.createSourceFile(`${env.path}.ts`, sourceCode)
@@ -75,50 +75,54 @@ export default (md: MarkdownIt): void => {
       })
       const importDeclarations = sourceFile.getImportDeclarations()
       if (importDeclarations.length > 0) {
-        const importedText = importDeclarations
-          .map((importDeclaration) => {
-            const namedImports = importDeclaration.getNamedImports()
-            const exports = importDeclaration
-              .getModuleSpecifierSourceFile()!
-              .getExportedDeclarations()
-            return Array.from(exports)
-              .filter(([name]) =>
-                namedImports.some((n) => n.getName() === name)
-              )
-              .map(([, exportedDeclarations]) => {
-                const exportedDeclaration = exportedDeclarations[0]
-                const sf = exportedDeclaration.getSourceFile()
-                const index = sf
-                  .getStatements()
-                  .findIndex(
-                    (statement) =>
-                      statement.getStart() === exportedDeclaration.getStart() &&
-                      statement.getEnd() === statement.getEnd()
-                  )
-                try {
-                  sf.insertStatements(index + 1, '// ---cut-start---\n')
-                  sf.insertStatements(index, '// ---cut-end---\n')
-                } catch (e) {}
-                // // ${sf.getFilePath()}\n
-                return `// ---cut-start---\n${sf.getText()}\n// ---cut-end---`
-                //           exportedDeclaration
-                // .map((d) => {
-                //   d.getText().replace(/export\s*/, '')
-                // })
-                // .join('\n')
-              })
-          })
+        const sourceFiles = new Map<SourceFile, string[]>()
+        importDeclarations.forEach((importDeclaration) => {
+          const namedImports = importDeclaration.getNamedImports()
+          const exported = importDeclaration
+            .getModuleSpecifierSourceFile()!
+            .getExportedDeclarations()
+          Array.from(exported)
+            .filter(([name]) =>
+              namedImports.some((namedImport) => namedImport.getName() === name)
+            )
+            .forEach(([name, exportedDeclarations]) => {
+              const exportedDeclaration = exportedDeclarations[0]
+              const sourceFile = exportedDeclaration.getSourceFile()
+              const index = sourceFile
+                .getStatements()
+                .findIndex((statement) => statement === exportedDeclaration)
+              try {
+                // sourceFile.insertStatements(index + 1, '// ---cut-start---\n')
+                // sourceFile.insertStatements(index, '// ---cut-end---\n')
+              } catch (e) {
+                console.log(e)
+              }
+              sourceFiles.get(sourceFile)
+                ? sourceFiles.get(sourceFile).push(name)
+                : sourceFiles.set(sourceFile, [name])
+            })
+        })
+        // d.getText().replace(/export\s*/, '')
+        const importedText = Array.from(sourceFiles)
+          .map(
+            ([sourceFile]) =>
+              `\n// @filename: ${sourceFile
+                .getFilePath()
+                .replace(
+                  'D:/github-pr/ep-pr/element-plus/',
+                  '../'
+                )}\n${sourceFile.getText()}\n`
+          )
           .join('\n')
         twoslashBlock.content =
           importedText +
           '\n' +
-          twoslashBlock.content.slice(
-            importDeclarations[importDeclarations.length - 1].getEnd()
-          )
-        console.log(twoslashBlock.content)
+          `\n// @filename: virtualFile.ts\n${twoslashBlock.content}\n` +
+          variableStatements.join('\n')
+        console.log('start!!!!\n' + twoslashBlock.content)
       }
     }
 
-    return html ?? render(tokens, options, env)
+    return render(tokens, options, env)
   }
 }
