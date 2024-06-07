@@ -7,7 +7,9 @@ export const renderer = rendererRich({
   hast: {
     hoverToken: {
       tagName: 'el-tooltip',
-      effect: 'light',
+      properties: {
+        effect: 'light',
+      },
     },
     hoverPopup: {
       tagName: 'div',

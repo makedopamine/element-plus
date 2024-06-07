@@ -88,15 +88,18 @@ export default (md: MarkdownIt): void => {
             .forEach(([name, exportedDeclarations]) => {
               const exportedDeclaration = exportedDeclarations[0]
               const sourceFile = exportedDeclaration.getSourceFile()
-              const index = sourceFile
-                .getStatements()
-                .findIndex((statement) => statement === exportedDeclaration)
-              try {
-                // sourceFile.insertStatements(index + 1, '// ---cut-start---\n')
-                // sourceFile.insertStatements(index, '// ---cut-end---\n')
-              } catch (e) {
-                console.log(e)
-              }
+              const index = sourceFile.getStatements().forEach((statement) => {
+                if (statement === exportedDeclaration)
+                  statement.replaceWithText(
+                    `// ---cut-end---\n${statement.getText()}// ---cut-start---\n`
+                  )
+              })
+              // try {
+              //   sourceFile.insertStatements(index, '// ---cut-end---\n')
+              //   sourceFile.insertStatements(index + 1, '// ---cut-start---\n')
+              // } catch (e) {
+              //   console.log('error')
+              // }
               sourceFiles.get(sourceFile)
                 ? sourceFiles.get(sourceFile).push(name)
                 : sourceFiles.set(sourceFile, [name])
@@ -106,20 +109,17 @@ export default (md: MarkdownIt): void => {
         const importedText = Array.from(sourceFiles)
           .map(
             ([sourceFile]) =>
-              `\n// @filename: ${sourceFile
-                .getFilePath()
-                .replace(
-                  'D:/github-pr/ep-pr/element-plus/',
-                  '../'
-                )}\n${sourceFile.getText()}\n`
+              `// ---cut-start---\n// @filename: ${path.relative(
+                path.resolve('.'),
+                sourceFile.getFilePath()
+              )}\n${sourceFile.getText()}\n// ---cut-end---`
           )
           .join('\n')
         twoslashBlock.content =
           importedText +
-          '\n' +
           `\n// @filename: virtualFile.ts\n${twoslashBlock.content}\n` +
           variableStatements.join('\n')
-        console.log('start!!!!\n' + twoslashBlock.content)
+        // console.log('start!!!!\n' + twoslashBlock.content)
       }
     }
 
