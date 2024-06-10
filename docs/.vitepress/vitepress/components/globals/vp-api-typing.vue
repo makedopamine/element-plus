@@ -3,14 +3,20 @@ import { computed } from 'vue'
 import { Warning } from '@element-plus/icons-vue'
 import { useLang } from '../../composables/lang'
 import apiTypingLocale from '../../../i18n/component/api-typing.json'
+import type { PropType } from 'vue'
 
 defineProps({
   type: String,
-  details: String,
+  details: Object as PropType<{ text: string; type?: 'reference' }[]>,
 })
 
 const lang = useLang()
 const detail = computed(() => apiTypingLocale[lang.value].detail)
+const toTarget = (text) => {
+  document
+    ?.getElementById(`type-${text}`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 </script>
 
 <template>
@@ -30,12 +36,22 @@ const detail = computed(() => apiTypingLocale[lang.value].detail)
           <slot>
             <div class="m-1" style="max-width: 600px">
               <code
-                v-html="decodeURIComponent(details)"
                 style="
                   color: var(--code-tooltip-color);
                   background-color: var(--code-tooltip-bg-color);
                 "
               >
+                <template v-for="(item, index) in details">
+                  <a
+                    v-if="item.type === 'reference'"
+                    :key="index"
+                    @click="toTarget(item.text)"
+                    >{{ item.text }}
+                  </a>
+                  <span v-else :key="`span${index}`">
+                    {{ item.text }}
+                  </span>
+                </template>
               </code>
             </div>
           </slot>

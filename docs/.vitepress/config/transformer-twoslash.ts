@@ -1,5 +1,8 @@
-import { transformerTwoslash } from '@shikijs/twoslash'
-import { rendererRich, defaultHoverInfoProcessor } from '@shikijs/twoslash'
+import {
+  defaultHoverInfoProcessor,
+  rendererRich,
+  transformerTwoslash,
+} from '@shikijs/twoslash'
 
 let currentInfo = undefined
 

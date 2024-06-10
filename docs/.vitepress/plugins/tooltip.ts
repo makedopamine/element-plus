@@ -1,14 +1,17 @@
-import ts from 'typescript'
-import type MarkdownIt from 'markdown-it'
-import { Project } from 'ts-morph'
-import type { SourceFile, TypeNode } from 'ts-morph'
 import path from 'path'
-
-const project = new Project({
-  tsConfigFilePath: './tsconfig.json',
-})
-
+// import ts from 'typescript'
+import { Project, SyntaxKind } from 'ts-morph'
+import type MarkdownIt from 'markdown-it'
+import type {
+  ExportedDeclarations,
+  SourceFile,
+  Statement,
+  TypeNode,
+} from 'ts-morph'
 export default (md: MarkdownIt): void => {
+  const project = new Project({
+    tsConfigFilePath: './tsconfig.json',
+  })
   const render = md.renderer.render.bind(md.renderer)
   md.renderer.render = (tokens, options, env) => {
     const twoslashBlock = tokens.find(
@@ -33,7 +36,6 @@ export default (md: MarkdownIt): void => {
       const briefType = result[1].replace(/\\\|/g, '|')
       const detailedType = (result[2] || '').replace(/^`(.*)`$/, '$1')
       token.type = 'html_inline'
-      token.content = `<api-typing type="${briefType}" details="${detailedType}"/>`
 
       if (twoslashBlock && detailedType) {
         const sn = variableStatements.length + 1
@@ -41,6 +43,8 @@ export default (md: MarkdownIt): void => {
         const variableStatement = `let ${variableName}:${detailedType}`
         tips.set(variableName, { token, briefType })
         variableStatements.push(variableStatement)
+      } else {
+        token.content = `<api-typing type="${briefType}"/>`
       }
     }
 
@@ -51,31 +55,45 @@ export default (md: MarkdownIt): void => {
       const variableDeclarations = sourceFile.getVariableDeclarations()
       variableDeclarations.forEach((variableDeclaration) => {
         const typeNode = variableDeclaration.getTypeNode()!
-        const typeText = typeNode.getText()
-        const details = (
+        let typeText = typeNode.getText()
+        const details: { text: string; type?: 'reference' }[] = []
+        ;(
           ((typeNode as any).getTypeNodes?.() as TypeNode[]) ?? [typeNode]
-        ).reduce((res, node) => {
+        ).forEach((node) => {
           const text = node.getText()
           if (
-            node.getKind() === ts.SyntaxKind.TypeReference &&
+            node.getKind() === SyntaxKind.TypeReference &&
             locals.some((l) => l.getName() === node.getText())
           ) {
-            res = res.replace(
-              text,
-              encodeURIComponent(
-                `<a href="javascript:document.getElementById('type-${text}').scrollIntoView({behavior: 'smooth', block: 'center'})">${text}</a>`
-              )
+            const [firstPart, secondPart] = typeText.split(text)
+            details.push(
+              {
+                text: firstPart,
+              },
+              {
+                text,
+                type: 'reference',
+              }
             )
+            typeText = secondPart
           }
-          return res
-        }, typeText)
+        })
+        details.push({ text: typeText })
         const variableName = variableDeclaration.getName()
         const { token, briefType } = tips.get(variableName)!
-        token.content = `<api-typing type="${briefType}" details="${details}"/>`
+        token.content = `<api-typing type="${briefType}" :details="[${details
+          .map((value) => {
+            return `{ text: '${value.text.replace(/'/g, "\\'")}' ${
+              value.type ? `, type: '${value.type}'` : ''
+            }}`
+          })
+          .join(',')}]"/>`
+        console.log(token.content)
       })
       const importDeclarations = sourceFile.getImportDeclarations()
       if (importDeclarations.length > 0) {
-        const sourceFiles = new Map<SourceFile, string[]>()
+        const sourceFiles = new Set<SourceFile>()
+        const exportedDeclarations = new Set<ExportedDeclarations>()
         importDeclarations.forEach((importDeclaration) => {
           const namedImports = importDeclaration.getNamedImports()
           const exported = importDeclaration
@@ -85,44 +103,35 @@ export default (md: MarkdownIt): void => {
             .filter(([name]) =>
               namedImports.some((namedImport) => namedImport.getName() === name)
             )
-            .forEach(([name, exportedDeclarations]) => {
-              const exportedDeclaration = exportedDeclarations[0]
+            .forEach(([, [exportedDeclaration]]) => {
               const sourceFile = exportedDeclaration.getSourceFile()
-              const index = sourceFile.getStatements().forEach((statement) => {
-                if (statement === exportedDeclaration)
-                  statement.replaceWithText(
-                    `// ---cut-end---\n${statement.getText()}// ---cut-start---\n`
-                  )
-              })
-              // try {
-              //   sourceFile.insertStatements(index, '// ---cut-end---\n')
-              //   sourceFile.insertStatements(index + 1, '// ---cut-start---\n')
-              // } catch (e) {
-              //   console.log('error')
-              // }
-              sourceFiles.get(sourceFile)
-                ? sourceFiles.get(sourceFile).push(name)
-                : sourceFiles.set(sourceFile, [name])
+              exportedDeclarations.add(exportedDeclaration)
+              sourceFiles.add(sourceFile)
             })
         })
-        // d.getText().replace(/export\s*/, '')
         const importedText = Array.from(sourceFiles)
           .map(
-            ([sourceFile]) =>
+            (sourceFile) =>
               `// ---cut-start---\n// @filename: ${path.relative(
                 path.resolve('.'),
                 sourceFile.getFilePath()
-              )}\n${sourceFile.getText()}\n// ---cut-end---`
+              )}\n${sourceFile
+                .getStatements()
+                .map((statement) => {
+                  return exportedDeclarations.has(statement)
+                    ? `// ---cut-end---\n${statement.getText()}\n// ---cut-start---`
+                    : statement.getText()
+                })
+                .join('\n')}\n// ---cut-end---`
           )
           .join('\n')
-        twoslashBlock.content =
-          importedText +
-          `\n// @filename: virtualFile.ts\n${twoslashBlock.content}\n` +
-          variableStatements.join('\n')
-        // console.log('start!!!!\n' + twoslashBlock.content)
+        twoslashBlock.content = `${importedText}\n// @filename: virtualFile.ts\n${
+          twoslashBlock.content
+        }\n${variableStatements.join('\n')}`
+        // console.log(`start!!!!\n${twoslashBlock.content}`)
       }
+      project.removeSourceFile(sourceFile)
     }
-
     return render(tokens, options, env)
   }
 }

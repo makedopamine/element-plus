@@ -130,7 +130,7 @@ form/accessibility
 | model                             | Data of form component.                                                                                                                                                                  | ^[object]`Record<string, any>`                 | —       |
 | rules                             | Validation rules of form.                                                                                                                                                                | ^[object]`FormRules \| string`                 | —       |
 | inline                            | Whether the form is inline.                                                                                                                                                              | ^[boolean]                                     | false   |
-| label-position                    | Position of label. If set to `'left'` or `'right'`, `label-width` prop is also required.                                                                                                 | ^[enum]`'left' \| 'right' \| 'top'`            | right   |
+| label-position                    | Position of label. If set to `'left'` or `'right'`, `label-width` prop is also required.                                                                                                 | ^[enum]`FormProps['labelPosition']`            | right   |
 | label-width                       | Width of label, e.g. `'50px'`. All its direct child form items will inherit this value. `auto` is supported.                                                                             | ^[string] / ^[number]                          | ''      |
 | label-suffix                      | Suffix of the label.                                                                                                                                                                     | ^[string]                                      | ''      |
 | hide-required-asterisk            | Whether to hide required fields should have a red asterisk (star) beside their labels.                                                                                                   | ^[boolean]                                     | false   |
@@ -223,19 +223,63 @@ If you don't want to trigger the validator based on input events, set the `valid
 
 ```ts twoslash
 import type {
-  FormItemValidateState,
-  FormItemProps,
-  FormItemProp,
   ComponentSize,
-  FormRules,
-  FormItemRule,
-  FormValidateCallback,
   FormItemContext,
+  FormItemProp,
+  FormItemRule,
+  FormItemValidateState,
+  FormProps,
+  FormRules,
+  FormValidateCallback,
   FormValidationResult,
+  formItemProps,
 } from 'element-plus'
-import type { ComputedRef, Ref } from 'vue'
+import type { ComputedRef, Prop, Ref } from 'vue'
 
 export type Arrayable<T> = T | T[]
+
+// If the type T accepts type "any", output type Y, otherwise output type N.
+// https://stackoverflow.com/questions/49927523/disallow-call-with-any/49928360#49928360
+export type IfAny<T, Y, N> = 0 extends 1 & T ? Y : N
+
+type InferPropType<T> = [T] extends [null]
+  ? any // null & true would fail to infer
+  : [T] extends [{ type: null | true }]
+  ? any // As TS issue https://github.com/Microsoft/TypeScript/issues/14829 // somehow `ObjectConstructor` when inferred from { (): T } becomes `any` // `BooleanConstructor` when inferred from PropConstructor(with PropMethod) becomes `Boolean`
+  : [T] extends [ObjectConstructor | { type: ObjectConstructor }]
+  ? Record<string, any>
+  : [T] extends [BooleanConstructor | { type: BooleanConstructor }]
+  ? boolean
+  : [T] extends [DateConstructor | { type: DateConstructor }]
+  ? Date
+  : [T] extends [(infer U)[] | { type: (infer U)[] }]
+  ? U extends DateConstructor
+    ? Date | InferPropType<U>
+    : InferPropType<U>
+  : [T] extends [Prop<infer V, infer D>]
+  ? unknown extends V
+    ? IfAny<V, V, D>
+    : V
+  : T
+
+type PublicRequiredKeys<T> = {
+  [K in keyof T]: T[K] extends { required: true } ? K : never
+}[keyof T]
+
+type PublicOptionalKeys<T> = Exclude<keyof T, PublicRequiredKeys<T>>
+
+/**
+ * Extract prop types from a runtime props options object.
+ * The extracted types are **public** - i.e. the expected props that can be
+ * passed to component.
+ */
+export type ExtractPublicPropTypes<O> = {
+  [K in keyof Pick<O, PublicRequiredKeys<O>>]: InferPropType<O[K]>
+} & {
+  [K in keyof Pick<O, PublicOptionalKeys<O>>]?: InferPropType<O[K]>
+}
+
+type FormItemProps = ExtractPublicPropTypes<typeof formItemProps>
 ```
 
 </details>
