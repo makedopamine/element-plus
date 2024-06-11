@@ -2,11 +2,12 @@ import path from 'path'
 // import ts from 'typescript'
 import { Project, SyntaxKind } from 'ts-morph'
 import type MarkdownIt from 'markdown-it'
-import type {
+import {
   ExportedDeclarations,
   SourceFile,
   Statement,
   TypeNode,
+  TypeFormatFlags,
 } from 'ts-morph'
 export default (md: MarkdownIt): void => {
   const project = new Project({
@@ -61,7 +62,19 @@ export default (md: MarkdownIt): void => {
           ((typeNode as any).getTypeNodes?.() as TypeNode[]) ?? [typeNode]
         ).forEach((node) => {
           const text = node.getText()
-          if (
+          if (node.getKind() === SyntaxKind.IndexedAccessType) {
+            const tsTypeChecker = project.getTypeChecker().compilerObject
+            const isEnum =
+              tips.get(variableDeclaration.getName())?.briefType === 'enum'
+            typeText = tsTypeChecker.typeToString(
+              tsTypeChecker.getTypeAtLocation(node.compilerNode),
+              undefined,
+              isEnum
+                ? TypeFormatFlags.InTypeAlias |
+                    TypeFormatFlags.UseSingleQuotesForStringLiteralType
+                : undefined
+            )
+          } else if (
             node.getKind() === SyntaxKind.TypeReference &&
             locals.some((l) => l.getName() === node.getText())
           ) {
@@ -88,7 +101,6 @@ export default (md: MarkdownIt): void => {
             }}`
           })
           .join(',')}]"/>`
-        console.log(token.content)
       })
       const importDeclarations = sourceFile.getImportDeclarations()
       if (importDeclarations.length > 0) {
@@ -128,7 +140,6 @@ export default (md: MarkdownIt): void => {
         twoslashBlock.content = `${importedText}\n// @filename: virtualFile.ts\n${
           twoslashBlock.content
         }\n${variableStatements.join('\n')}`
-        // console.log(`start!!!!\n${twoslashBlock.content}`)
       }
       project.removeSourceFile(sourceFile)
     }
