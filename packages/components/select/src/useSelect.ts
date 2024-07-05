@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   computed,
   nextTick,
@@ -46,23 +45,24 @@ import {
 
 import { useInput } from '../../select-v2/src/useInput'
 import type ElTooltip from '@element-plus/components/tooltip'
-import type { ISelectProps, SelectOptionProxy } from './token'
+import type { SelectOptionProxy, SelectStates } from './types'
+import type { ISelectProps, SelectEmitFn } from './select'
 
 const MINIMUM_INPUT_WIDTH = 11
 
-export const useSelect = (props: ISelectProps, emit) => {
+export const useSelect = (props: ISelectProps, emit: SelectEmitFn) => {
   const { t } = useLocale()
   const contentId = useId()
   const nsSelect = useNamespace('select')
   const nsInput = useNamespace('input')
 
-  const states = reactive({
+  const states: SelectStates = reactive({
     inputValue: '',
     options: new Map(),
     cachedOptions: new Map(),
     disabledOptions: new Map(),
-    optionValues: [] as any[], // sorted value of options
-    selected: props.multiple ? [] : ({} as any),
+    optionValues: [], // sorted value of options
+    selected: props.multiple ? [] : {},
     selectionWidth: 0,
     calculatorWidth: 0,
     collapseItemWidth: 0,
@@ -75,20 +75,20 @@ export const useSelect = (props: ISelectProps, emit) => {
   })
 
   // template refs
-  const selectRef = ref<HTMLElement>(null)
-  const selectionRef = ref<HTMLElement>(null)
-  const tooltipRef = ref<InstanceType<typeof ElTooltip> | null>(null)
-  const tagTooltipRef = ref<InstanceType<typeof ElTooltip> | null>(null)
-  const inputRef = ref<HTMLInputElement | null>(null)
-  const calculatorRef = ref<HTMLElement>(null)
-  const prefixRef = ref<HTMLElement>(null)
-  const suffixRef = ref<HTMLElement>(null)
-  const menuRef = ref<HTMLElement>(null)
-  const tagMenuRef = ref<HTMLElement>(null)
-  const collapseItemRef = ref<HTMLElement>(null)
+  const selectRef = ref<HTMLElement>()
+  const selectionRef = ref<HTMLElement>()
+  const tooltipRef = ref<InstanceType<typeof ElTooltip>>()
+  const tagTooltipRef = ref<InstanceType<typeof ElTooltip>>()
+  const inputRef = ref<HTMLInputElement>()
+  const calculatorRef = ref<HTMLElement>()
+  const prefixRef = ref<HTMLElement>()
+  const suffixRef = ref<HTMLElement>()
+  const menuRef = ref<HTMLElement>()
+  const tagMenuRef = ref<HTMLElement>()
+  const collapseItemRef = ref<HTMLElement>()
   const scrollbarRef = ref<{
     handleScroll: () => void
-  } | null>(null)
+  }>()
 
   const { wrapperRef, isFocused, handleFocus, handleBlur } = useFocusController(
     inputRef,
@@ -144,13 +144,15 @@ export const useSelect = (props: ISelectProps, emit) => {
       : props.suffixIcon
   )
   const iconReverse = computed(() =>
-    nsSelect.is('reverse', iconComponent.value && expanded.value)
+    nsSelect.is('reverse', !!iconComponent.value && expanded.value)
   )
 
   const validateState = computed(() => formItem?.validateState || '')
-  const validateIcon = computed(
-    () => ValidateComponentsMap[validateState.value]
-  )
+  const validateIcon = computed(() => {
+    if (!validateState.value) return
+
+    return ValidateComponentsMap[validateState.value]
+  })
 
   const debounce = computed(() => (props.remote ? 300 : 0))
 
@@ -181,7 +183,9 @@ export const useSelect = (props: ISelectProps, emit) => {
 
   const optionsArray = computed(() => {
     const list = Array.from(states.options.values())
-    const newList = []
+    const newList = states.optionValues.map((optionValue) =>
+      states.options.get(optionValue)
+    )
     states.optionValues.forEach((item) => {
       const index = list.findIndex((i) => i.value === item)
       if (index > -1) {

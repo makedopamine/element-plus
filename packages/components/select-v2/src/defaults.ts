@@ -288,5 +288,5 @@ export const optionEmits = {
 
 export type ISelectV2Props = ExtractPropTypes<typeof SelectProps>
 export type IOptionV2Props = ExtractPropTypes<typeof OptionProps>
-export type SelectEmitFn = EmitFn<typeof selectEmits>
-export type OptionEmitFn = EmitFn<typeof optionEmits>
+export type SelectV2EmitFn = EmitFn<typeof selectEmits>
+export type OptionV2EmitFn = EmitFn<typeof optionEmits>

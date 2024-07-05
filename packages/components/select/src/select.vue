@@ -287,7 +287,6 @@
 </template>
 
 <script lang="ts">
-// @ts-nocheck
 import { defineComponent, provide, reactive } from 'vue'
 import { ClickOutside } from '@element-plus/directives'
 import ElInput from '@element-plus/components/input'
@@ -303,7 +302,7 @@ import { selectKey } from './token'
 import ElOptions from './options'
 
 import { SelectProps } from './select'
-import type { SelectContext } from './token'
+import type { Ref } from 'vue'
 
 const COMPONENT_NAME = 'ElSelect'
 export default defineComponent({
@@ -339,13 +338,14 @@ export default defineComponent({
       reactive({
         props,
         states: API.states,
+        expanded: API.expanded,
         optionsArray: API.optionsArray,
         handleOptionSelect: API.handleOptionSelect,
         onOptionCreate: API.onOptionCreate,
         onOptionDestroy: API.onOptionDestroy,
-        selectRef: API.selectRef,
+        selectRef: API.selectRef as Ref<HTMLElement>,
         setSelected: API.setSelected,
-      }) as unknown as SelectContext
+      })
     )
 
     return {

@@ -8,7 +8,10 @@ import { buildProps, definePropType, iconPropType } from '@element-plus/utils'
 import { useTooltipContentProps } from '@element-plus/components/tooltip'
 import { ArrowDown, CircleClose } from '@element-plus/icons-vue'
 import { tagProps } from '@element-plus/components/tag'
+import { CHANGE_EVENT, UPDATE_MODEL_EVENT } from '@element-plus/constants'
+import type { EmitFn } from '@element-plus/utils'
 import type { Options, Placement } from '@element-plus/components/popper'
+import type { ExtractPropTypes } from 'vue'
 
 export const SelectProps = buildProps({
   /**
@@ -219,3 +222,17 @@ export const SelectProps = buildProps({
   ...useEmptyValuesProps,
   ...useAriaProps(['ariaLabel']),
 })
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export const selectEmits = {
+  [UPDATE_MODEL_EVENT]: (val: ISelectProps['modelValue']) => true,
+  [CHANGE_EVENT]: (val: ISelectProps['modelValue']) => true,
+  removeTag: (val: unknown) => true,
+  visibleChange: (visible: boolean) => true,
+  blur: (event: FocusEvent) => true,
+  focus: (event: FocusEvent) => event instanceof FocusEvent,
+  clear: () => true,
+}
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
+export type ISelectProps = ExtractPropTypes<typeof SelectProps>
+export type SelectEmitFn = EmitFn<typeof selectEmits>
